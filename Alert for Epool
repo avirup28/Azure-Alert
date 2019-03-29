@@ -1,0 +1,34 @@
+$DBs=import-csv .\data.csv
+
+ForEach ($DB in $DBs)
+{
+
+$ID = (Get-AzSqlElasticPool -ServerName $DB.SV -ElasticPoolName $DB.DB -ResourceGroupName $DB.RG).ResourceId
+
+$ID
+
+
+#DTU alerts
+
+$alertName="DTU-Alert-$($DB.DB)"
+$metricName = 'eDTU_used'
+$alertDescription = 'Alert on DTU Usage'
+
+$customEmail='CNF-Consumer-Azure-alerts@groups.pg.com','PG.windows@mindtree.com','PG.Cloudops@mindtree.com'
+
+$actionEmail=New-AzAlertRuleEmail -CustomEmail $customEmail
+Add-AzMetricAlertRule -WindowSize "00:15:00" -Operator GreaterThan -Threshold 95 -TargetResourceId $ID -MetricName $metricName -TimeAggregationOperator Average -Location eastus2 -Description $alertDescription -ResourceGroupName $DB.RG -Name $alertName -Action $actionEmail
+Write-host "Success:dtu alert rule created $alertName" -ForegroundColor Green
+
+#Storage alerts
+
+$alertName="Storage-Alert-$($DB.DB)"
+$metricName = 'storage_percent'
+$alertDescription = 'Alert on Storage Usage'
+
+
+$actionEmail=New-AzAlertRuleEmail -CustomEmail $customEmail
+Add-AzMetricAlertRule -WindowSize "00:15:00" -Operator GreaterThan -Threshold 85 -TargetResourceId $ID -MetricName $metricName -TimeAggregationOperator Average -Location eastus2 -Description $alertDescription -ResourceGroupName $DB.RG -Name $alertName -Action $actionEmail
+Write-host "Success:storage alert rule created $alertName" -ForegroundColor Green
+
+}
